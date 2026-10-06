@@ -1,0 +1,26 @@
+name: Gateway tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - codex/rs-tx-007-scout-tenant-config
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run tests
+        run: pytest -q
