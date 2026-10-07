@@ -2,7 +2,7 @@
 
 The SageWire API Gateway is the common entry point for SageWire services.
 
-**Version:** `1.1.0`
+**Version:** `1.2.0` development candidate
 
 Runs on port **5010**.
 
@@ -47,6 +47,53 @@ GET  /onboarding/api/v1/events
 Requests are forwarded only to the registered SageWire Onboarding Service.
 
 The Gateway is not an open proxy.
+
+
+Reaper Scout tenant configuration
+
+```text
+GET /scout/api/v1/config
+```
+
+This endpoint requires a Google bearer token. The Gateway verifies the token
+against Google's user-info endpoint, derives the verified email server-side,
+and returns only the Reaper Scout operation assigned to that identity.
+
+Unknown identities receive:
+
+```json
+{"status":"ONBOARDING_REQUIRED"}
+```
+
+The operation registry is supplied through `SAGEWIRE_SCOUT_TENANTS_JSON`.
+Do not commit production Sheet IDs or customer memberships to source control.
+
+Example shape:
+
+```json
+{
+  "operations": [
+    {
+      "id": "example-ranch",
+      "name": "Example Ranch",
+      "sheet_id": "google-sheet-id",
+      "schema_version": "1",
+      "status": "ACTIVE",
+      "members": ["owner@example.com"],
+      "features": {
+        "field_head_count": true,
+        "animal_lookup": true,
+        "bovine_beacon": false
+      }
+    }
+  ]
+}
+```
+
+An identity may belong to only one enabled operation in this initial contract.
+Duplicate active membership invalidates the registry and the endpoint fails
+closed. Query parameters and client-supplied operation or Sheet identifiers do
+not influence resolution.
 
 
 ---
