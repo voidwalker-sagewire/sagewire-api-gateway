@@ -5,6 +5,8 @@ from urllib.parse import urljoin
 from flask import Flask, Response, jsonify, request
 import requests
 
+import reaper_onboarding as reaper
+
 app = Flask(__name__)
 
 GATEWAY_VERSION = "1.2.0"
@@ -187,6 +189,8 @@ def _load_scout_registry():
             "Scout tenant registry is not valid JSON."
         ) from exc
 
+    if not isinstance(payload, dict):
+        raise ScoutRegistryError("Scout tenant registry must be an object.")
     operations = payload.get("operations")
 
     if not isinstance(operations, list):
@@ -347,6 +351,8 @@ def _verified_google_identity():
 
     try:
         identity = response.json()
+        if not isinstance(identity, dict):
+            raise ValueError("Invalid Google identity shape")
     except ValueError:
         return None, (
             jsonify(
@@ -383,6 +389,7 @@ def _verified_google_identity():
     "/scout/api/v1/config",
     methods=["GET"],
 )
+@app.route("/reaper/api/v1/config", methods=["GET"])
 def scout_config():
     identity, error_response = _verified_google_identity()
 
@@ -428,11 +435,46 @@ def scout_config():
             }
         )
 
-    return jsonify(
-        {
-            "status": "ONBOARDING_REQUIRED",
-        }
-    )
+    if os.getenv("SAGEWIRE_REAPER_DB_PATH"):
+        try:
+            operation = reaper.find_operation(identity)
+            if operation:
+                return jsonify(reaper.public_config(operation))
+        except reaper.SetupError as error:
+            return _setup_error(error)
+    return jsonify({"status": "ONBOARDING_REQUIRED"})
+
+
+def _setup_error(error):
+    return jsonify({"error": {"code": error.code, "message": error.message}}), error.status
+
+
+@app.route("/reaper/api/v1/onboarding", methods=["GET", "POST"])
+@app.route("/scout/api/v1/onboarding", methods=["GET", "POST"])
+def reaper_setup():
+    if request.method == "GET":
+        return scout_config()
+    identity, error_response = _verified_google_identity()
+    if error_response is not None:
+        return error_response
+    try:
+        # Existing and disabled memberships cannot self-provision around policy.
+        for operation in _load_scout_registry():
+            if identity["email"] in operation["members"]:
+                raise reaper.SetupError("OPERATION_ALREADY_ASSIGNED",
+                                        "This account already has an operation. Return to sign-in.", 409)
+        if request.content_length and request.content_length > 2048:
+            raise reaper.SetupError("INVALID_SETUP_REQUEST", "Setup request is too large.", 400)
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict) or set(payload) != {"name"}:
+            raise reaper.SetupError("INVALID_SETUP_REQUEST", "Only an operation name is accepted.", 400)
+        token = request.headers["Authorization"].partition(" ")[2].strip()
+        return jsonify(reaper.provision(identity, payload["name"], token, REQUEST_TIMEOUT_SECONDS))
+    except ScoutRegistryError:
+        return jsonify({"error": {"code": "SCOUT_REGISTRY_INVALID",
+                                  "message": "Operation access is temporarily unavailable."}}), 503
+    except reaper.SetupError as error:
+        return _setup_error(error)
 
 
 @app.route("/health")
