@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 5010
 
-CMD ["gunicorn", "-b", "0.0.0.0:5010", "server:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:5010", "--workers", "2", "--timeout", "180", "server:app"]

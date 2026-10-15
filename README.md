@@ -156,3 +156,10 @@ Applications should depend on the SageWire Gateway rather than directly coupling
 A product may depend on a service.
 
 A service must not depend on a product
+
+## Shared Reaper account provisioning
+
+See [REAPER-ONBOARDING.md](REAPER-ONBOARDING.md) for the customer-owned workbook
+contract, required persistent storage, safe retry behavior, coordinated auth /
+scanner deployment and acceptance checks. This is an implementation candidate,
+not a statement that self-service onboarding is live.
