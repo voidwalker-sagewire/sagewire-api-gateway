@@ -32,3 +32,12 @@ Deployment, release-signing, and automatic version-bump workflows are not manual
 Review this maintenance-only diff and available CI results before merging into `main`. Prepare a separate Ubuntu 26.04 compatibility test when migration is desired; do not remove this pin merely because the label migration completes. Existing product work orders and release/field acceptance states retain their authority.
 
 Source: https://github.blog/changelog/2026-09-17-ubuntu-26-generally-available-and-latest-migration/
+
+## Verification refresh — November 19, 2026
+
+- Rechecked current main `a167229a154c23006e8d529ccee9aa3f767b64a5`; the service source baseline is unchanged from the original preparation.
+- Rebuilt this PR's intended tree from current main: only the test runner pin and this maintenance record differ.
+- Python 3.12, dependency versions, test commands, triggers, permissions, Dockerfile, service code, credentials, and deployment configuration are preserved.
+- Existing tests use temporary databases and simulated Google responses; they do not establish live Google sign-in, production database behavior, container readiness, or field acceptance.
+- Current verification status and exact test-run evidence are maintained in [PR #4](https://github.com/voidwalker-sagewire/sagewire-api-gateway/pull/4). Review readiness requires successful CI on the refreshed head.
+- No merge or production deployment is performed by this preparation.
